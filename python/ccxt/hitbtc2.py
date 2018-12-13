@@ -1297,3 +1297,9 @@ class hitbtc2 (hitbtc):
                     if message == 'Duplicate clientOrderId':
                         raise InvalidOrder(feedback)
             raise ExchangeError(feedback)
+
+    def wallet_status(self):
+        currencies = self.publicGetCurrency()
+        status_map = map(lambda x: ( self.common_currency_code(x['id']) , { "withdraw": x['payoutEnabled'], \
+            "deposit": not x['payinEnabled'] } ) ,currencies)
+        return dict(status_map)

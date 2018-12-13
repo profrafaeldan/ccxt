@@ -1302,3 +1302,13 @@ class kucoin (Exchange):
         elif body and(body[0] == '{'):
             # Python/PHP callchains don't have json available at self step
             self.throw_exception_on_error(json.loads(body))
+
+
+    def wallet_status(self):
+        response = self.publicGetMarketOpenCoins()
+        currencies = response['data']
+        status_map = map(lambda x: ( \
+            self.common_currency_code(x['coin']),\
+            { "withdraw": x['enableWithdraw'], \
+            "deposit": x['enableDeposit'] } ), currencies)
+        return dict(status_map)

@@ -1668,3 +1668,23 @@ class Exchange(object):
         message_hash = self.hashMessage(message)
         signature = self.signHash(message_hash[-64:], privateKey[-64:])
         return signature
+
+    def wallet_status(self):
+        self.raise_error(NotSupported, details='wallet_status() not implemented yet')
+
+    def wallet_in_maintenance(self, assets, transaction_type="both"):
+        if type(assets) == str:
+            assets = [assets]
+        
+        wallet_status = self.wallet_status()
+
+        return_ = False
+        for asset in assets:
+            asset_status = wallet_status[asset]
+
+            if transaction_type == 'both':
+                return_ = not asset_status['withdraw'] or not asset_status['deposit']
+            else:
+                return_ = not asset_status['withdraw'] if transaction_type == 'withdraw' else not asset_status['deposit']
+            
+        return return_

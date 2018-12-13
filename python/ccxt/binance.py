@@ -76,6 +76,7 @@ class binance (Exchange):
                 'referral': 'https://www.binance.com/?ref=10205187',
                 'doc': 'https://github.com/binance-exchange/binance-official-api-docs/blob/master/rest-api.md',
                 'fees': 'https://www.binance.com/en/fee/schedule',
+                'maintenance': 'https://www.binance.com/assetWithdraw/getAllAsset.html',
             },
             'api': {
                 'web': {
@@ -1115,3 +1116,11 @@ class binance (Exchange):
         if (api == 'private') or (api == 'wapi'):
             self.options['hasAlreadyAuthenticatedSuccessfully'] = True
         return response
+
+    def wallet_status(self):
+        response = self.fetch(self.urls['maintenance'], 'GET')
+        status_map = map(lambda x: ( \
+            self.common_currency_code(x['assetCode']),\
+            { "withdraw": x['enableWithdraw'], \
+            "deposit": not x['depositTipStatus'] } ) ,response)
+        return dict(status_map)

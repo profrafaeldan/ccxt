@@ -66,6 +66,7 @@ class huobipro (Exchange):
                     'market': 'https://api.huobi.pro',
                     'public': 'https://api.huobi.pro',
                     'private': 'https://api.huobi.pro',
+                    'v2': 'https://api.huobi.pro',
                     'zendesk': 'https://huobiglobal.zendesk.com/hc/en-us/articles',
                 },
                 'www': 'https://www.huobi.pro',
@@ -74,6 +75,11 @@ class huobipro (Exchange):
                 'fees': 'https://www.huobi.pro/about/fee/',
             },
             'api': {
+                'v2': {
+                    'get': {
+                        'beta/common/currencies'
+                    }
+                },
                 'zendesk': {
                     'get': [
                         '360000400491-Trade-Limits',
@@ -790,7 +796,7 @@ class huobipro (Exchange):
 
     def sign(self, path, api='public', method='GET', params={}, headers=None, body=None):
         url = '/'
-        if api == 'market':
+        if (api == 'market') or (api == 'v2'):
             url += api
         elif (api == 'public') or (api == 'private'):
             url += self.version
@@ -846,3 +852,12 @@ class huobipro (Exchange):
                     if code in exceptions:
                         raise exceptions[code](feedback)
                     raise ExchangeError(feedback)
+
+    def wallet_status(self):
+        response = self.v2GetBetaCommonCurrencies()
+        
+        status_map = map(lambda x: ( \
+            self.common_currency_code(x['display_name']),\
+            { "withdraw": x['withdraw_enabled'], \
+            "deposit": x['deposit_enabled'] } ) ,response['data'])
+        return dict(status_map)

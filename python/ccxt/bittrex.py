@@ -83,6 +83,7 @@ class bittrex (Exchange):
                 'v2': {
                     'get': [
                         'currencies/GetBTCPrice',
+                        'currencies/GetWalletHealth',
                         'market/GetTicks',
                         'market/GetLatestTick',
                         'Markets/GetMarketSummaries',
@@ -940,3 +941,15 @@ class bittrex (Exchange):
         if (api == 'account') or (api == 'market'):
             self.options['hasAlreadyAuthenticatedSuccessfully'] = True
         return response
+
+    def wallet_status(self):
+        response = self.v2GetCurrenciesGetWalletHealth()
+        status_map = map(lambda x: (\
+            self.common_currency_code(x['Currency']['Currency']),\
+            { "withdraw": x['Currency']['IsActive'] \
+                or not x['Currency']['Notice'] == 'Wallet Offline', \
+            "deposit": x['Currency']['IsActive'] \
+                or not x['Currency']['Notice'] == 'Wallet Offline', \
+            } ) ,response['result'])
+
+        return dict(status_map)

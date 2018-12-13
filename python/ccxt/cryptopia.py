@@ -841,3 +841,15 @@ class cryptopia (Exchange):
 
     def parse_json(self, response, responseBody, url, method):
         return super(cryptopia, self).parseJson(response, self.sanitize_broken_json_string(responseBody), url, method)
+
+    def wallet_status(self):
+        response = self.publicGetGetCurrencies()
+        currencies = response['Data']
+        
+        status_map = map(lambda x: ( self.common_currency_code(x['Symbol']),\
+            { "withdraw": x['Status'] == 'Maintenance' or \
+                x['ListingStatus'] == 'Delisting', \
+            "deposit": x['Status'] == 'Maintenance' or \
+                x['ListingStatus'] == 'Delisting', \
+            } ) ,currencies)
+        return dict(status_map)

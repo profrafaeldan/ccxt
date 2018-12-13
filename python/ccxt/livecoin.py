@@ -637,3 +637,11 @@ class livecoin (Exchange):
                     if exception.find('Minimal amount is') >= 0:
                         raise InvalidOrder(self.id + ' ' + body)
                 raise ExchangeError(self.id + ' ' + body)
+
+    def wallet_status(self):
+        response = self.publicGetInfoCoinInfo()
+        status_map = map(lambda x: ( \
+            self.common_currency_code(x['symbol']),\
+            { "withdraw": x['walletStatus'] not in ['down', 'closed_cashout'], \
+            "deposit": x['walletStatus'] not in ['down', 'closed_cashin'] } ) ,response['info'])
+        return dict(status_map)
