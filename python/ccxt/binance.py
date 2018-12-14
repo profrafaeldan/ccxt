@@ -349,7 +349,7 @@ class binance (Exchange):
                         'max': None,
                     },
                     'price': {
-                        'min': math.pow(10, -precision['price']),
+                        'min': None,
                         'max': None,
                     },
                     'cost': {
@@ -360,11 +360,18 @@ class binance (Exchange):
             }
             if 'PRICE_FILTER' in filters:
                 filter = filters['PRICE_FILTER']
+                # PRICE_FILTER reports zero values for minPrice and maxPrice
+                # since they updated filter types in November 2018
+                # https://github.com/ccxt/ccxt/issues/4286
+                # therefore limits['price']['min'] and limits['price']['max]
+                # don't have any meaningful value except None
+                #
+                #     entry['limits']['price'] = {
+                #         'min': self.safe_float(filter, 'minPrice'),
+                #         'max': self.safe_float(filter, 'maxPrice'),
+                #     }
+                #
                 entry['precision']['price'] = self.precision_from_string(filter['tickSize'])
-                entry['limits']['price'] = {
-                    'min': self.safe_float(filter, 'minPrice'),
-                    'max': self.safe_float(filter, 'maxPrice'),
-                }
             if 'LOT_SIZE' in filters:
                 filter = filters['LOT_SIZE']
                 entry['precision']['amount'] = self.precision_from_string(filter['stepSize'])
@@ -586,6 +593,9 @@ class binance (Exchange):
             'PARTIALLY_FILLED': 'open',
             'FILLED': 'closed',
             'CANCELED': 'canceled',
+            'PENDING_CANCEL': 'canceling',  # currently unused
+            'REJECTED': 'rejected',
+            'EXPIRED': 'expired',
         }
         return statuses[status] if (status in list(statuses.keys())) else status
 
@@ -707,6 +717,7 @@ class binance (Exchange):
             if stopPrice is None:
                 raise InvalidOrder(self.id + ' createOrder method requires a stopPrice extra param for a ' + type + ' order')
             else:
+                params = self.omit(params, 'stopPrice')
                 order['stopPrice'] = self.price_to_precision(symbol, stopPrice)
         response = getattr(self, method)(self.extend(order, params))
         return self.parse_order(response, market)

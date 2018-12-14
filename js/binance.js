@@ -340,7 +340,7 @@ module.exports = class binance extends Exchange {
                         'max': undefined,
                     },
                     'price': {
-                        'min': Math.pow (10, -precision['price']),
+                        'min': undefined,
                         'max': undefined,
                     },
                     'cost': {
@@ -351,11 +351,18 @@ module.exports = class binance extends Exchange {
             };
             if ('PRICE_FILTER' in filters) {
                 let filter = filters['PRICE_FILTER'];
+                // PRICE_FILTER reports zero values for minPrice and maxPrice
+                // since they updated filter types in November 2018
+                // https://github.com/ccxt/ccxt/issues/4286
+                // therefore limits['price']['min'] and limits['price']['max]
+                // don't have any meaningful value except undefined
+                //
+                //     entry['limits']['price'] = {
+                //         'min': this.safeFloat (filter, 'minPrice'),
+                //         'max': this.safeFloat (filter, 'maxPrice'),
+                //     };
+                //
                 entry['precision']['price'] = this.precisionFromString (filter['tickSize']);
-                entry['limits']['price'] = {
-                    'min': this.safeFloat (filter, 'minPrice'),
-                    'max': this.safeFloat (filter, 'maxPrice'),
-                };
             }
             if ('LOT_SIZE' in filters) {
                 let filter = filters['LOT_SIZE'];
@@ -604,6 +611,9 @@ module.exports = class binance extends Exchange {
             'PARTIALLY_FILLED': 'open',
             'FILLED': 'closed',
             'CANCELED': 'canceled',
+            'PENDING_CANCEL': 'canceling', // currently unused
+            'REJECTED': 'rejected',
+            'EXPIRED': 'expired',
         };
         return (status in statuses) ? statuses[status] : status;
     }
@@ -748,6 +758,7 @@ module.exports = class binance extends Exchange {
             if (stopPrice === undefined) {
                 throw new InvalidOrder (this.id + ' createOrder method requires a stopPrice extra param for a ' + type + ' order');
             } else {
+                params = this.omit (params, 'stopPrice');
                 order['stopPrice'] = this.priceToPrecision (symbol, stopPrice);
             }
         }

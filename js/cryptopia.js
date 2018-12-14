@@ -14,6 +14,7 @@ module.exports = class cryptopia extends Exchange {
             'name': 'Cryptopia',
             'rateLimit': 1500,
             'countries': [ 'NZ' ], // New Zealand
+            'parseJsonResponse': false,
             'has': {
                 'CORS': false,
                 'createMarketOrder': false,
@@ -403,7 +404,7 @@ module.exports = class cryptopia extends Exchange {
         return this.parseTrades (trades, market, since, limit);
     }
 
-    parseTransaction (transaction) {
+    parseTransaction (transaction, currency = undefined) {
         //
         // fetchWithdrawals
         //
@@ -437,7 +438,7 @@ module.exports = class cryptopia extends Exchange {
         let timestamp = this.parse8601 (this.safeString (transaction, 'Timestamp'));
         let code = undefined;
         let currencyId = this.safeString (transaction, 'Currency');
-        let currency = this.safeValue (this.currencies_by_id, currencyId);
+        currency = this.safeValue (this.currencies_by_id, currencyId);
         if (currency === undefined) {
             code = this.commonCurrencyCode (currencyId);
         }
@@ -805,8 +806,9 @@ module.exports = class cryptopia extends Exchange {
         }, params));
         let address = this.safeString (response['Data'], 'BaseAddress');
         let tag = this.safeString (response['Data'], 'Address');
-        if (address === undefined) {
+        if ((address === undefined) || (address.length < 1)) {
             address = tag;
+            tag = undefined;
         }
         this.checkAddress (address);
         return {
@@ -915,7 +917,8 @@ module.exports = class cryptopia extends Exchange {
         return jsonString;
     }
 
-    parseJson (response, responseBody, url, method) { // we have to sanitize JSON before trying to parse
-        return super.parseJson (response, this.sanitizeBrokenJSONString (responseBody), url, method);
+    async request (path, api = 'public', method = 'GET', params = {}, headers = undefined, body = undefined) {
+        let response = await this.fetch2 (path, api, method, params, headers, body);
+        return this.parseIfJsonEncodedObject (this.sanitizeBrokenJSONString (response));
     }
 };

@@ -22,15 +22,15 @@ module.exports = class wex extends liqui {
             'urls': {
                 'logo': 'https://user-images.githubusercontent.com/1294454/30652751-d74ec8f8-9e31-11e7-98c5-71469fcef03e.jpg',
                 'api': {
-                    'public': 'https://wex.link/api',
-                    'private': 'https://wex.link/tapi',
+                    'public': 'https://wex1.in/api',
+                    'private': 'https://wex1.in/tapi',
                 },
-                'www': 'https://wex.link',
+                'www': 'https://wex1.in',
                 'doc': [
-                    'https://wex.link/api/3/docs',
-                    'https://wex.link/tapi/docs',
+                    'https://wex1.in/api/3/docs',
+                    'https://wex1.in/tapi/docs',
                 ],
-                'fees': 'https://wex.link/fees',
+                'fees': 'https://wex1.in/fees',
             },
             'api': {
                 'public': {

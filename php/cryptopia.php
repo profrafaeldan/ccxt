@@ -15,6 +15,7 @@ class cryptopia extends Exchange {
             'name' => 'Cryptopia',
             'rateLimit' => 1500,
             'countries' => array ( 'NZ' ), // New Zealand
+            'parseJsonResponse' => false,
             'has' => array (
                 'CORS' => false,
                 'createMarketOrder' => false,
@@ -404,7 +405,7 @@ class cryptopia extends Exchange {
         return $this->parse_trades($trades, $market, $since, $limit);
     }
 
-    public function parse_transaction ($transaction) {
+    public function parse_transaction ($transaction, $currency = null) {
         //
         // fetchWithdrawals
         //
@@ -806,8 +807,9 @@ class cryptopia extends Exchange {
         ), $params));
         $address = $this->safe_string($response['Data'], 'BaseAddress');
         $tag = $this->safe_string($response['Data'], 'Address');
-        if ($address === null) {
+        if (($address === null) || (strlen ($address) < 1)) {
             $address = $tag;
+            $tag = null;
         }
         $this->check_address($address);
         return array (
@@ -916,7 +918,8 @@ class cryptopia extends Exchange {
         return $jsonString;
     }
 
-    public function parse_json ($response, $responseBody, $url, $method) {
-        return parent::parseJson ($response, $this->sanitize_broken_json_string ($responseBody), $url, $method);
+    public function request ($path, $api = 'public', $method = 'GET', $params = array (), $headers = null, $body = null) {
+        $response = $this->fetch2 ($path, $api, $method, $params, $headers, $body);
+        return $this->parse_if_json_encoded_object($this->sanitize_broken_json_string ($response));
     }
 }

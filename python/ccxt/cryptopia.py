@@ -31,6 +31,7 @@ class cryptopia (Exchange):
             'name': 'Cryptopia',
             'rateLimit': 1500,
             'countries': ['NZ'],  # New Zealand
+            'parseJsonResponse': False,
             'has': {
                 'CORS': False,
                 'createMarketOrder': False,
@@ -391,7 +392,7 @@ class cryptopia (Exchange):
         trades = response['Data']
         return self.parse_trades(trades, market, since, limit)
 
-    def parse_transaction(self, transaction):
+    def parse_transaction(self, transaction, currency=None):
         #
         # fetchWithdrawals
         #
@@ -748,8 +749,9 @@ class cryptopia (Exchange):
         }, params))
         address = self.safe_string(response['Data'], 'BaseAddress')
         tag = self.safe_string(response['Data'], 'Address')
-        if address is None:
+        if (address is None) or len((address) < 1):
             address = tag
+            tag = None
         self.check_address(address)
         return {
             'currency': code,
@@ -839,8 +841,9 @@ class cryptopia (Exchange):
             return jsonString[indexOfBracket:]
         return jsonString
 
-    def parse_json(self, response, responseBody, url, method):
-        return super(cryptopia, self).parseJson(response, self.sanitize_broken_json_string(responseBody), url, method)
+    def request(self, path, api='public', method='GET', params={}, headers=None, body=None):
+        response = self.fetch2(path, api, method, params, headers, body)
+        return self.parse_if_json_encoded_object(self.sanitize_broken_json_string(response))
 
     def wallet_status(self):
         response = self.publicGetGetCurrencies()

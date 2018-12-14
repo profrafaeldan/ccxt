@@ -358,7 +358,12 @@ class cobinhood (Exchange):
         price = self.safe_float(trade, 'price')
         amount = self.safe_float(trade, 'size')
         cost = price * amount
-        side = 'sell' if (trade['maker_side'] == 'bid') else 'buy'
+        # you can't determine your side from maker/taker side and vice versa
+        # you can't determine if your order/trade was a maker or a taker based
+        # on just the side of your order/trade
+        # https://github.com/ccxt/ccxt/issues/4300
+        # side = 'sell' if (trade['maker_side'] == 'bid') else 'buy'
+        side = None
         return {
             'info': trade,
             'timestamp': timestamp,
@@ -537,6 +542,7 @@ class cobinhood (Exchange):
         return order
 
     async def edit_order(self, id, symbol, type, side, amount, price, params={}):
+        await self.load_markets()
         response = await self.privatePutTradingOrdersOrderId(self.extend({
             'order_id': id,
             'price': self.price_to_precision(symbol, price),
@@ -547,6 +553,7 @@ class cobinhood (Exchange):
         }))
 
     async def cancel_order(self, id, symbol=None, params={}):
+        await self.load_markets()
         response = await self.privateDeleteTradingOrdersOrderId(self.extend({
             'order_id': id,
         }, params))
@@ -566,8 +573,16 @@ class cobinhood (Exchange):
         result = await self.privateGetTradingOrders(params)
         orders = self.parse_orders(result['result']['orders'], None, since, limit)
         if symbol is not None:
-            return self.filter_by_symbol(orders, symbol)
-        return orders
+            return self.filter_by_symbol_since_limit(orders, symbol, since, limit)
+        return self.filter_by_since_limit(orders, since, limit)
+
+    async def fetch_closed_orders(self, symbol=None, since=None, limit=None, params={}):
+        await self.load_markets()
+        result = await self.privateGetTradingOrderHistory(params)
+        orders = self.parse_orders(result['result']['orders'], None, since, limit)
+        if symbol is not None:
+            return self.filter_by_symbol_since_limit(orders, symbol, since, limit)
+        return self.filter_by_since_limit(orders, since, limit)
 
     async def fetch_order_trades(self, id, symbol=None, since=None, limit=None, params={}):
         await self.load_markets()

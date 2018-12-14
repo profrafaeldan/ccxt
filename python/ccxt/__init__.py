@@ -22,7 +22,7 @@
 
 # ----------------------------------------------------------------------------
 
-__version__ = '1.17.535'
+__version__ = '1.18.34'
 
 # ----------------------------------------------------------------------------
 
@@ -148,8 +148,6 @@ from ccxt.getbtc import getbtc                              # noqa: F401
 from ccxt.hadax import hadax                                # noqa: F401
 from ccxt.hitbtc import hitbtc                              # noqa: F401
 from ccxt.hitbtc2 import hitbtc2                            # noqa: F401
-from ccxt.huobi import huobi                                # noqa: F401
-from ccxt.huobicny import huobicny                          # noqa: F401
 from ccxt.huobipro import huobipro                          # noqa: F401
 from ccxt.ice3x import ice3x                                # noqa: F401
 from ccxt.independentreserve import independentreserve      # noqa: F401
@@ -187,6 +185,7 @@ from ccxt.therock import therock                            # noqa: F401
 from ccxt.tidebit import tidebit                            # noqa: F401
 from ccxt.tidex import tidex                                # noqa: F401
 from ccxt.uex import uex                                    # noqa: F401
+from ccxt.upbit import upbit                                # noqa: F401
 from ccxt.urdubit import urdubit                            # noqa: F401
 from ccxt.vaultoro import vaultoro                          # noqa: F401
 from ccxt.vbtc import vbtc                                  # noqa: F401
@@ -283,8 +282,6 @@ exchanges = [
     'hadax',
     'hitbtc',
     'hitbtc2',
-    'huobi',
-    'huobicny',
     'huobipro',
     'ice3x',
     'independentreserve',
@@ -322,6 +319,7 @@ exchanges = [
     'tidebit',
     'tidex',
     'uex',
+    'upbit',
     'urdubit',
     'vaultoro',
     'vbtc',

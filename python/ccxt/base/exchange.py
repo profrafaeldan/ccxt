@@ -4,7 +4,7 @@
 
 # -----------------------------------------------------------------------------
 
-__version__ = '1.17.535'
+__version__ = '1.18.34'
 
 # -----------------------------------------------------------------------------
 
@@ -244,6 +244,8 @@ class Exchange(object):
         'XBT': 'BTC',
         'BCC': 'BCH',
         'DRK': 'DASH',
+        'BCHABC': 'BCH',
+        'BCHSV': 'BSV',
     }
 
     def __init__(self, config={}):
@@ -405,7 +407,6 @@ class Exchange(object):
 
         if self.verbose:
             print("\nRequest:", method, url, request_headers, body)
-
         self.logger.debug("%s %s, Request: %s %s", method, url, request_headers, body)
 
         if body:
@@ -415,6 +416,7 @@ class Exchange(object):
 
         response = None
         http_response = None
+        json_response = None
         try:
             response = self.session.request(
                 method,
@@ -425,13 +427,17 @@ class Exchange(object):
                 proxies=self.proxies
             )
             http_response = response.text
+            json_response = self.parse_json(http_response)
+            headers = response.headers
+            # FIXME remove last_x_responses from subclasses
             if self.enableLastHttpResponse:
                 self.last_http_response = http_response
-            headers = response.headers
+            if self.enableLastJsonResponse:
+                self.last_json_response = json_response
             if self.enableLastResponseHeaders:
                 self.last_response_headers = headers
             if self.verbose:
-                print("\nResponse:", method, url, str(response.status_code), str(headers), http_response)
+                print("\nResponse:", method, url, response.status_code, headers, http_response)
             self.logger.debug("%s %s, Response: %s %s %s", method, url, response.status_code, headers, http_response)
             response.raise_for_status()
 
@@ -456,8 +462,9 @@ class Exchange(object):
             else:
                 self.raise_error(ExchangeError, url, method, e)
 
-        self.handle_errors(response.status_code, response.reason, url, method, None, http_response)
-        return self.handle_rest_response(http_response, url, method, headers, body)
+        self.handle_errors(response.status_code, response.reason, url, method, headers, http_response, json_response)
+        self.handle_rest_response(http_response, json_response, url, method, headers, body)
+        return json_response
 
     def handle_rest_errors(self, exception, http_status_code, response, url, method='GET'):
         error = None
@@ -470,16 +477,8 @@ class Exchange(object):
         if error:
             self.raise_error(error, url, method, exception if exception else http_status_code, response)
 
-    def handle_rest_response(self, response, url, method='GET', headers=None, body=None):
-        try:
-            if self.parseJsonResponse:
-                json_response = json.loads(response) if len(response) > 1 else None
-                if self.enableLastJsonResponse:
-                    self.last_json_response = json_response
-                return json_response
-            else:
-                return response
-        except ValueError as e:  # ValueError == JsonDecodeError
+    def handle_rest_response(self, response, json_response, url, method='GET', headers=None, body=None):
+        if json_response is None:
             ddos_protection = re.search('(cloudflare|incapsula|overload|ddos)', response, flags=re.IGNORECASE)
             exchange_not_available = re.search('(offline|busy|retry|wait|unavailable|maintain|maintenance|maintenancing)', response, flags=re.IGNORECASE)
             if ddos_protection:
@@ -487,7 +486,16 @@ class Exchange(object):
             if exchange_not_available:
                 message = response + ' exchange downtime, exchange closed for maintenance or offline, DDoS protection or rate-limiting in effect'
                 self.raise_error(ExchangeNotAvailable, method, url, None, message)
-            self.raise_error(ExchangeError, method, url, e, response)
+            self.raise_error(ExchangeError, method, url, ValueError('failed to decode json'), response)
+
+    def parse_json(self, http_response):
+        try:
+            if self.parseJsonResponse:
+                return json.loads(http_response)
+            else:
+                return http_response
+        except ValueError:  # superclass of JsonDecodeError (python2)
+            pass
 
     @staticmethod
     def safe_float(dictionary, key, default_value=None):
@@ -827,7 +835,7 @@ class Exchange(object):
             ms = ms or '.000'
             msint = int(ms[1:])
             sign = sign or ''
-            sign = int(sign + '1')
+            sign = int(sign + '1') * -1
             hours = int(hours or 0) * sign
             minutes = int(minutes or 0) * sign
             offset = datetime.timedelta(hours=hours, minutes=minutes)

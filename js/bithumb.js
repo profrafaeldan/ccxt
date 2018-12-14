@@ -3,7 +3,7 @@
 //  ---------------------------------------------------------------------------
 
 const Exchange = require ('./base/Exchange');
-const { ExchangeError } = require ('./base/errors');
+const { ExchangeError, ExchangeNotAvailable, AuthenticationError, BadRequest, PermissionDenied, InvalidAddress } = require ('./base/errors');
 
 //  ---------------------------------------------------------------------------
 
@@ -26,7 +26,7 @@ module.exports = class bithumb extends Exchange {
                     'private': 'https://api.bithumb.com',
                 },
                 'www': 'https://www.bithumb.com',
-                'doc': 'https://www.bithumb.com/u1/US127',
+                'doc': 'https://apidocs.bithumb.com',
             },
             'api': {
                 'public': {
@@ -65,7 +65,19 @@ module.exports = class bithumb extends Exchange {
                 },
             },
             'exceptions': {
-                '5100': ExchangeError, // {"status":"5100","message":"After May 23th, recent_transactions is no longer, hence users will not be able to connect to recent_transactions"}
+                'Bad Request(SSL)': BadRequest,
+                'Bad Request(Bad Method)': BadRequest,
+                'Bad Request.(Auth Data)': AuthenticationError, // { "status": "5100", "message": "Bad Request.(Auth Data)" }
+                'Not Member': AuthenticationError,
+                'Invalid Apikey': AuthenticationError, // {"status":"5300","message":"Invalid Apikey"}
+                'Method Not Allowed.(Access IP)': PermissionDenied,
+                'Method Not Allowed.(BTC Adress)': InvalidAddress,
+                'Method Not Allowed.(Access)': PermissionDenied,
+                'Database Fail': ExchangeNotAvailable,
+                'Invalid Parameter': BadRequest,
+                '5600': ExchangeError,
+                'Unknown Error': ExchangeError,
+                'After May 23th, recent_transactions is no longer, hence users will not be able to connect to recent_transactions': ExchangeError, // {"status":"5100","message":"After May 23th, recent_transactions is no longer, hence users will not be able to connect to recent_transactions"}
             },
         });
     }
@@ -81,13 +93,19 @@ module.exports = class bithumb extends Exchange {
                 let base = id;
                 let quote = 'KRW';
                 let symbol = id + '/' + quote;
+                let active = true;
+                if (Array.isArray (market)) {
+                    if (market.length === 0) {
+                        active = false;
+                    }
+                }
                 result.push ({
                     'id': id,
                     'symbol': symbol,
                     'base': base,
                     'quote': quote,
                     'info': market,
-                    'active': true,
+                    'active': active,
                     'precision': {
                         'amount': undefined,
                         'price': undefined,
@@ -229,7 +247,7 @@ module.exports = class bithumb extends Exchange {
         timestamp -= 9 * 3600000; // they report UTC + 9 hours (server in Korean timezone)
         let side = (trade['type'] === 'ask') ? 'sell' : 'buy';
         return {
-            'id': undefined,
+            'id': this.safeString (trade, 'cont_no'),
             'info': trade,
             'timestamp': timestamp,
             'datetime': this.iso8601 (timestamp),
@@ -366,7 +384,8 @@ module.exports = class bithumb extends Exchange {
                 //
                 //     {"status":"5100","message":"After May 23th, recent_transactions is no longer, hence users will not be able to connect to recent_transactions"}
                 //
-                let status = this.safeString (response, 'status');
+                const status = this.safeString (response, 'status');
+                const message = this.safeString (response, 'message');
                 if (status !== undefined) {
                     if (status === '0000')
                         return; // no error
@@ -374,6 +393,8 @@ module.exports = class bithumb extends Exchange {
                     const exceptions = this.exceptions;
                     if (status in exceptions) {
                         throw new exceptions[status] (feedback);
+                    } else if (message in exceptions) {
+                        throw new exceptions[message] (feedback);
                     } else {
                         throw new ExchangeError (feedback);
                     }
