@@ -1300,6 +1300,18 @@ class hitbtc2 (hitbtc):
 
     def wallet_status(self):
         currencies = self.publicGetCurrency()
-        status_map = map(lambda x: ( self.common_currency_code(x['id']) , { "withdraw": x['payoutEnabled'], \
-            "deposit": not x['payinEnabled'] } ) ,currencies)
+        status_map = map(lambda x: ( self.common_currency_code(x['id']) ,\
+            { "withdraw": x['payoutEnabled'] and x['transferEnabled'], \
+            "deposit": x['payinEnabled'] and x['transferEnabled'] } ) ,currencies)
         return dict(status_map)
+
+    def transfer(self, code, amount, direction):
+        """
+        bankToExchange, exchangeToBank
+        """
+        response = self.privatePostAccountTransfer({
+            "type": direction,
+            "currency": code,
+            "amount": amount
+        })
+        
