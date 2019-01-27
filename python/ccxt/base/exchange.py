@@ -244,8 +244,8 @@ class Exchange(object):
         'XBT': 'BTC',
         'BCC': 'BCH',
         'DRK': 'DASH',
-        'BCHABC': 'BCH',
-        'BCHSV': 'BSV',
+        # 'BCHABC': 'BCH',
+        # 'BCHSV': 'BSV',
     }
 
     def __init__(self, config={}):
@@ -1021,6 +1021,12 @@ class Exchange(object):
         return self.markets
 
     def load_markets(self, reload=False, params={}):
+        markets = self.get_markets(reload, params)
+        if type(markets) == tuple:
+            return self.set_markets(markets[0], markets[1])
+        return markets
+
+    def get_markets(self, reload=False, params={}):
         if not reload:
             if self.markets:
                 if not self.markets_by_id:
@@ -1030,7 +1036,8 @@ class Exchange(object):
         currencies = None
         if self.has['fetchCurrencies']:
             currencies = self.fetch_currencies()
-        return self.set_markets(markets, currencies)
+        
+        return (markets, currencies)
 
     def populate_fees(self):
         if not (hasattr(self, 'markets') or hasattr(self, 'currencies')):
